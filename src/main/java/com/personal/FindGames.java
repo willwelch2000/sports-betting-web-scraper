@@ -2,6 +2,8 @@ package com.personal;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,19 +17,30 @@ import org.openqa.selenium.chrome.ChromeDriver;
 import com.personal.api.BettingAPI;
 import com.personal.model.Game;
 
-public class App {
-    static final String driverAddress = "C:\\Users\\willw\\Developer\\chromedriver.exe";
+public class FindGames {
+    public static final String driverAddress = "C:\\Users\\willw\\Developer\\chromedriver.exe";
     static WebDriver driverESPN;
     static WebDriver driverFanduel;
     static String league;
     static Boolean debug = true;
     static List<Game> combinedGames;
+    static List<Game> gamesToBet = new ArrayList<>();
 
-    static String getESPNAddress(String league) {
+    public static String alterTeamName(String teamName) {
+        return teamName.substring(teamName.lastIndexOf(" ") + 1);
+    }
+
+    private static String getESPNAddress(String league) {
         return "https://www.espn.com/" + league + "/scoreboard";
     }
 
-    static String getDraftKingsAddress(String league) {
+    public static String getESPNAddress(String league, Date date) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(date);
+        return getESPNAddress(league) + "/_/date/" + calendar.get(Calendar.YEAR) + (calendar.get(Calendar.MONTH) + 1) + calendar.get(Calendar.DAY_OF_MONTH);
+    }
+
+    private static String getDraftKingsAddress(String league) {
         Map<String, String> leagueToSport = new HashMap<>();
         leagueToSport.put("mlb", "baseball");
         leagueToSport.put("nba", "basketball");
@@ -36,20 +49,19 @@ public class App {
         return "https://sportsbook.draftkings.com/leagues/" + sport + '/' + league;
     }
 
-    static String getFanduelAddress(String league) {
+    private static String getFanduelAddress(String league) {
         return "https://sportsbook.fanduel.com/navigation/" + league;
     }
 
-    public static void inputLeague() {
+    private static void getInput() {
         // Request league from user
-        // System.out.print("Select a league: ");
-        //Scanner input = new Scanner(System.in);
-        // String league = input.next();
-        //input.close();
-        league = "nba";
+        System.out.print("Select a league: ");
+        Scanner input = new Scanner(System.in);
+        league = input.next();
+        input.close();
     }
     
-    public static void initializeDrivers() {
+    private static void initializeDrivers() {
         // Initialize two drivers--one for ESPN, another for DraftKings
         System.setProperty("webdriver.chrome.driver", driverAddress);
         driverESPN = new ChromeDriver();
@@ -60,7 +72,7 @@ public class App {
         driverFanduel.get(getFanduelAddress(league));
     }
 
-    public static List<Game> getGamesESPN() {
+    private static List<Game> getGamesESPN() {
         // Find games for today and their percentages
         List<Game> games = new ArrayList<>();
         List<WebElement> gameCastButtons = driverESPN.findElements(By.cssSelector("div.Scoreboard__Callouts a"));
@@ -98,45 +110,41 @@ public class App {
         return games;
     }
 
-    public static List<String> getTeamNamesESPN() {
+    private static List<String> getTeamNamesESPN() {
         // Returns list of home/away team names in that order
+        // Only uses final word of team name--this is for consistency with Fanduel names
 
-        // List<WebElement> longNameBoxes = driverESPN.findElements(By.cssSelector("span.long-name"));
-        // List<WebElement> shortNameBoxes = driverESPN.findElements(By.cssSelector("span.short-name"));
-        // String awayName = (longNameBoxes.get(0).getText() + ' ' + shortNameBoxes.get(0).getText()).replaceFirst("^ ", "");
-        // String homeName = (longNameBoxes.get(1).getText() + ' ' + shortNameBoxes.get(1).getText()).replaceFirst("^ ", "");
-        // List<String> teamNames = new ArrayList<>();
-        // teamNames.add(homeName);
-        // teamNames.add(awayName);
-        // return teamNames;
-
-        List<WebElement> nameBoxes = driverESPN.findElements(By.cssSelector("div.Gamestrip__Competitors div.ScoreCell__TeamName"));
+        List<WebElement> nameBoxes = driverESPN.findElements(By.cssSelector("div.Gamestrip__Competitors h2.ScoreCell__TeamName"));
         List<String> names = new ArrayList<>();
         for (WebElement box : nameBoxes) {
-            names.add(box.getText());
+            names.add(alterTeamName(box.getText()));
         }
         return names;
     }
 
-    public static List<Double> getPercentagesESPN() {
+    private static List<Double> getPercentagesESPN() {
         // Returns percentages for home/away teams in that order
         List<Double> percentages = new ArrayList<>();
         
         String percentageAway = driverESPN.findElement(By.cssSelector("div.matchupPredictor__teamValue--b")).getText();
         String percentageHome = driverESPN.findElement(By.cssSelector("div.matchupPredictor__teamValue--a")).getText();
         
-        percentages.add(Double.parseDouble(percentageHome.replaceAll("%", ""))/100);
         percentages.add(Double.parseDouble(percentageAway.replaceAll("%", ""))/100);
+        percentages.add(Double.parseDouble(percentageHome.replaceAll("%", ""))/100);
         return percentages;
     }
 
-    public static void closeDrivers() {
+    private static void closeDrivers() {
         driverESPN.close();
         driverFanduel.close();
     }
 
-    public static void postBet() {
+    private static void postBets() {
         BettingAPI bettingAPI = new BettingAPI();
+
+        for (Game game : combinedGames) {
+            bettingAPI.addGame(game);
+        }
 
         try {
             bettingAPI.post();
@@ -149,14 +157,14 @@ public class App {
         }
     }
 
-    public static List<Game> getGamesDraftKings() {
+    private static List<Game> getGamesDraftKings() {
         // Find games for today and their odds
         List<Game> games = new ArrayList<>();
         //List<WebElement> = driverDraftKings.findElements(null);
         return games;
     }
 
-    public static List<Game> getGamesFanduel() {
+    private static List<Game> getGamesFanduel() {
         List<Game> games = new ArrayList<>();
         List<WebElement> timeBoxes = driverFanduel.findElements(By.cssSelector("time"));
 
@@ -201,18 +209,18 @@ public class App {
         return games;
     }
 
-    public static List<String> getTeamNamesFanduel() {
-        List<WebElement> nameBoxes = driverFanduel.findElements(By.cssSelector("span.ae.aj.ix.iy.iz.ja.if.ig.ih.il.jb.s.ff.ec.jc.h.i.j.al.l.m.am.o.an.q.ao.br"));
+    private static List<String> getTeamNamesFanduel() {
+        List<WebElement> nameBoxes = driverFanduel.findElements(By.cssSelector("span.ae.aj.ix.iy.iz.ja.if.ig.ih.il.jb.s.ff.ec.h.i.j.al.l.m.am.o.an.q.ao.br"));
         List<String> teamNames = new ArrayList<>();
         for (WebElement nameBox : nameBoxes) {
-            teamNames.add(nameBox.getText().substring(nameBox.getText().indexOf(" ") + 1));
+            teamNames.add(alterTeamName(nameBox.getText()));
         }
 
         return teamNames;
     }
 
-    public static List<Integer> getOddsFanduel() {
-        List<WebElement> oddsBoxes = driverFanduel.findElements(By.cssSelector("div.af.ag.ba.az.ct.cu.aj.cv.hy.cx.s.fg.ed.gj.jl.bk.y.h.i.j.al.l.m.am.o.an.q.ao span"));
+    private static List<Integer> getOddsFanduel() {
+        List<WebElement> oddsBoxes = driverFanduel.findElements(By.cssSelector("div.af.ag.ba.az.ct.cu.aj.cv.hy.cx.s.fg.ed.gj.bk.y.h.i.j.al.l.m.am.o.an.q.ao span"));
         List<Integer> odds = new ArrayList<>();
         for (WebElement oddsBox : oddsBoxes) {
             odds.add(Integer.parseInt(oddsBox.getText().replace("+", "")));
@@ -220,7 +228,7 @@ public class App {
         return odds;
     }
 
-    public static List<Game> mergeGames(List<Game> percentageGames, List<Game> oddsGames) {
+    private static List<Game> mergeGames(List<Game> percentageGames, List<Game> oddsGames) {
         List<Game> combinedGames = new ArrayList<>();
         for (Game percentageGame : percentageGames) {
             Game combinedGame = new Game(percentageGame);
@@ -236,7 +244,7 @@ public class App {
         return combinedGames;
     }
 
-    public static void analyze() {
+    private static void analyze() {
         // Prints out games that should be bet on, according to the strategy refernced by "method"
         int method = 0;
 
@@ -257,26 +265,29 @@ public class App {
             // Check stats
             Boolean shouldBuy = false;
             if (method == 0) {
-                Double expectedTotalMin = 0.2;
+                Double expectedTotalMin = 0.02;
                 int oddsMin = -120;
                 int oddsMax = 120;
-                Double percentageMin = 0.6;
-                Double percentageMax = 0.4;
+                Double percentageMin = 0.4;
+                Double percentageMax = 0.6;
                 shouldBuy = expectedTotal > expectedTotalMin && ((odds >= oddsMin && odds <= oddsMax) || (percentage >= percentageMin && percentage <= percentageMax));
             }
 
-            if (shouldBuy)
-                System.out.println(game);
+            if (shouldBuy) {
+                System.out.println("Bet on: " + game);
+                gamesToBet.add(game);
+            }
         }
     }
 
     public static void main( String[] args ) {
-        inputLeague();
+        getInput();
         initializeDrivers();
         List<Game> gamesESPN = getGamesESPN();
         List<Game> gamesFanduel = getGamesFanduel();
         closeDrivers();
         combinedGames = mergeGames(gamesESPN, gamesFanduel);
         analyze();
+        postBets();
     }
 }
