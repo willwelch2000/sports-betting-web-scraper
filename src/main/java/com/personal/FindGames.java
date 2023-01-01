@@ -2,6 +2,7 @@ package com.personal;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
@@ -19,25 +20,33 @@ import com.personal.model.Game;
 
 public class FindGames {
     public static final String driverAddress = "C:\\Users\\willw\\Developer\\chromedriver.exe";
-    static WebDriver driverESPN;
-    static WebDriver driverFanduel;
-    static String league;
-    static Boolean debug = true;
-    static List<Game> combinedGames;
-    static List<Game> gamesToBet = new ArrayList<>();
+    private static WebDriver driverESPN;
+    private static WebDriver driverFanduel;
+    private static String league;
+    private static Boolean debug = true;
+    private static List<Game> combinedGames;
+    private static List<Game> gamesToBet = new ArrayList<>();
+    private static String[] supportedLeagues = {"nba"};
 
     public static String alterTeamName(String teamName) {
         return teamName.substring(teamName.lastIndexOf(" ") + 1);
     }
 
     private static String getESPNAddress(String league) {
-        return "https://www.espn.com/" + league + "/scoreboard";
+        Map<String, String> espnLeague = new HashMap<>();
+        espnLeague.put("nba", "nba");
+        espnLeague.put("ncaab", "mens-college-basketball");
+        return "https://www.espn.com/" + espnLeague.get(league) + "/scoreboard";
     }
 
     public static String getESPNAddress(String league, Date date) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
-        return getESPNAddress(league) + "/_/date/" + calendar.get(Calendar.YEAR) + (calendar.get(Calendar.MONTH) + 1) + calendar.get(Calendar.DAY_OF_MONTH);
+        String month = Integer.toString(calendar.get(Calendar.MONTH) + 1);
+        month = (month.length() == 1)? "0" + month : month;
+        String day = Integer.toString(calendar.get(Calendar.DAY_OF_MONTH));
+        day = (day.length() == 1)? "0" + day : day;
+        return getESPNAddress(league) + "/_/date/" + calendar.get(Calendar.YEAR) + month + day;
     }
 
     private static String getDraftKingsAddress(String league) {
@@ -50,14 +59,30 @@ public class FindGames {
     }
 
     private static String getFanduelAddress(String league) {
-        return "https://sportsbook.fanduel.com/navigation/" + league;
+        Map<String, String> fanduelLeague = new HashMap<>();
+        fanduelLeague.put("nba", "nba");
+        fanduelLeague.put("ncaab", "ncaab");
+        return "https://sportsbook.fanduel.com/navigation/" + fanduelLeague.get(league);
     }
 
     private static void getInput() {
         // Request league from user
-        System.out.print("Select a league: ");
+        System.out.print("Select a league\nSupported leagues: ");
+        for (String supportedLeague : supportedLeagues) {
+            System.out.print(supportedLeague + "   ");
+        }
+        System.out.println();
         Scanner input = new Scanner(System.in);
-        league = input.next();
+        league = "";
+        while (true) {
+            league = input.next().toLowerCase();
+            if (Arrays.asList(supportedLeagues).contains(league)) {
+                System.out.println("Success!");
+                break;
+            } else {
+                System.out.print("League not supported. Try again: ");
+            }
+        }
         input.close();
     }
     
@@ -68,7 +93,7 @@ public class FindGames {
         driverFanduel = new ChromeDriver();
 
         // Start the drivers
-        driverESPN.get(getESPNAddress(league));
+        driverESPN.get(getESPNAddress(league, new Date()));
         driverFanduel.get(getFanduelAddress(league));
     }
 
@@ -287,7 +312,7 @@ public class FindGames {
         List<Game> gamesFanduel = getGamesFanduel();
         closeDrivers();
         combinedGames = mergeGames(gamesESPN, gamesFanduel);
-        analyze();
         postBets();
+        analyze();
     }
 }

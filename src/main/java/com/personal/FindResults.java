@@ -61,7 +61,7 @@ public class FindResults {
             List<WebElement> loserBoxes = driver.findElements(By.cssSelector("li.ScoreboardScoreCell__Item--loser div.ScoreCell__TeamName--shortDisplayName"));
             Boolean winner = winnerBoxes.parallelStream().anyMatch(winnerBox -> FindGames.alterTeamName(winnerBox.getText()).equals(FindGames.alterTeamName(game.getWinner())));
             Boolean loser = loserBoxes.parallelStream().anyMatch(loserBox -> FindGames.alterTeamName(loserBox.getText()).equals(FindGames.alterTeamName(game.getWinner())));
-            game.setResult((winner && loser)? "U" : (winner? "Y" : "N"));
+            game.setResult(((winner && loser) || (!winner && !loser))? "U" : (winner? "Y" : "N"));
         }
 
         driver.close();

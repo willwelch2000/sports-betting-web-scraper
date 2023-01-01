@@ -80,7 +80,7 @@ public class BettingAPI {
             HttpResponse<String> response = client.send(request,
                     HttpResponse.BodyHandlers.ofString());
     
-            System.out.println("Added game to database: " + game.getWinner() + " over " + game.getLoser());
+            System.out.println("Added game to database: " + game);
         }
     }
 
