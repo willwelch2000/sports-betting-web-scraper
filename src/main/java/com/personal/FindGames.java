@@ -23,10 +23,11 @@ public class FindGames {
     private static WebDriver driverESPN;
     private static WebDriver driverFanduel;
     private static String league;
-    private static Boolean debug = true;
+    private static boolean debug = true;
     private static List<Game> combinedGames;
     private static List<Game> gamesToBet = new ArrayList<>();
     private static String[] supportedLeagues = {"nba"};
+    private static boolean postBets;
 
     public static String alterTeamName(String teamName) {
         return teamName.substring(teamName.lastIndexOf(" ") + 1);
@@ -83,6 +84,11 @@ public class FindGames {
                 System.out.print("League not supported. Try again: ");
             }
         }
+
+        // Request postBets boolean from user
+        System.out.println("Post games? (y/n)");
+        postBets = input.next().toLowerCase().equals("y");
+
         input.close();
     }
     
@@ -312,7 +318,8 @@ public class FindGames {
         List<Game> gamesFanduel = getGamesFanduel();
         closeDrivers();
         combinedGames = mergeGames(gamesESPN, gamesFanduel);
-        postBets();
+        if (postBets)
+            postBets();
         analyze();
     }
 }
