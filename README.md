@@ -15,10 +15,14 @@ This is the web scraper portion of the project. It achieves the following object
     * Access ESPN's website to find the result of games in the database but with unknown result.
     * Update the database using the found result.
 
-## Usage
+## Usage: FindGames.java
 ### When to use
 In order to properly function, this program should be run once per day before any NBA games have happened. The web scraper will run into issues if there are any NBA games currently happening or that have already been completed.  
 Additionally, if you want the data to be saved, the corresponding http client (called sports-betting-api) should be running.
 ### How to use
 The program asks the user to select from a list of supported leagues; for now, the only option is the NBA.  
 Next, it asks if the data should be saved via the http client. Simply answer 'y' or 'n'.
+
+
+## Usage: FindResults.java
+Use at any time. No user input necessary. 
