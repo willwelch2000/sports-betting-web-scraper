@@ -30,10 +30,12 @@ public class FindGames {
     private static boolean postBets;
 
     public static String alterTeamName(String teamName) {
+        // Adjust team name so that location is excluded--ie New York Knicks -> Knicks
         return teamName.substring(teamName.lastIndexOf(" ") + 1);
     }
 
     private static String getESPNAddress(String league) {
+        // Given a league, returns the URL on ESPN for the scoreboard of that league
         Map<String, String> espnLeague = new HashMap<>();
         espnLeague.put("nba", "nba");
         espnLeague.put("ncaab", "mens-college-basketball");
@@ -41,6 +43,7 @@ public class FindGames {
     }
 
     public static String getESPNAddress(String league, Date date) {
+        // Given a league and date, returns the URL on ESPN for the scoreboard of that league
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(date);
         String month = Integer.toString(calendar.get(Calendar.MONTH) + 1);
@@ -51,6 +54,7 @@ public class FindGames {
     }
 
     private static String getDraftKingsAddress(String league) {
+        // Given a league, returns the URL on DraftKings for the odds of that league
         Map<String, String> leagueToSport = new HashMap<>();
         leagueToSport.put("mlb", "baseball");
         leagueToSport.put("nba", "basketball");
@@ -60,6 +64,7 @@ public class FindGames {
     }
 
     private static String getFanduelAddress(String league) {
+        // Given a league, returns the URL on Fanduel for the odds of that league
         Map<String, String> fanduelLeague = new HashMap<>();
         fanduelLeague.put("nba", "nba");
         fanduelLeague.put("ncaab", "ncaab");
@@ -67,6 +72,8 @@ public class FindGames {
     }
 
     private static void getInput() {
+        // Gets info from user via command line: league, if it should post the bets
+
         // Request league from user
         System.out.print("Select a league\nSupported leagues: ");
         for (String supportedLeague : supportedLeagues) {
@@ -104,7 +111,7 @@ public class FindGames {
     }
 
     private static List<Game> getGamesESPN() {
-        // Find games for today and their percentages
+        // Find games for today and their percentages on ESPN--return as list
         List<Game> games = new ArrayList<>();
         List<WebElement> gameCastButtons = driverESPN.findElements(By.cssSelector("div.Scoreboard__Callouts a"));
         int gameCount = gameCastButtons.size();
@@ -142,7 +149,7 @@ public class FindGames {
     }
 
     private static List<String> getTeamNamesESPN() {
-        // Returns list of home/away team names in that order
+        // From the webpage of a specific future game, returns list of home/away team names in that order--only 2 names returned!
         // Only uses final word of team name--this is for consistency with Fanduel names
 
         List<WebElement> nameBoxes = driverESPN.findElements(By.cssSelector("div.Gamestrip__Competitors h2.ScoreCell__TeamName"));
@@ -154,7 +161,7 @@ public class FindGames {
     }
 
     private static List<Double> getPercentagesESPN() {
-        // Returns percentages for home/away teams in that order
+        // From the webpage of a specific future game, returns percentages for home/away teams in that order--only 2 percentages returned!
         List<Double> percentages = new ArrayList<>();
         
         String percentageAway = driverESPN.findElement(By.cssSelector("div.matchupPredictor__teamValue--b")).getText();
@@ -171,6 +178,8 @@ public class FindGames {
     }
 
     private static void postBets() {
+        // Posts all the games to database via the API
+
         BettingAPI bettingAPI = new BettingAPI();
 
         for (Game game : combinedGames) {
@@ -188,14 +197,9 @@ public class FindGames {
         }
     }
 
-    private static List<Game> getGamesDraftKings() {
-        // Find games for today and their odds
-        List<Game> games = new ArrayList<>();
-        //List<WebElement> = driverDraftKings.findElements(null);
-        return games;
-    }
-
     private static List<Game> getGamesFanduel() {
+        // Find games for today and their odds on Fanduel--return as list
+
         List<Game> games = new ArrayList<>();
         List<WebElement> timeBoxes = driverFanduel.findElements(By.cssSelector("time"));
 
@@ -241,6 +245,8 @@ public class FindGames {
     }
 
     private static List<String> getTeamNamesFanduel() {
+        // From main odds page, returns all the team names in order--unlike ESPN names function, which only returns 2
+
         List<WebElement> nameBoxes = driverFanduel.findElements(By.cssSelector("span.ae.aj.ix.iy.iz.ja.if.ig.ih.il.jb.s.ff.ec.h.i.j.al.l.m.am.o.an.q.ao.br"));
         List<String> teamNames = new ArrayList<>();
         for (WebElement nameBox : nameBoxes) {
@@ -251,6 +257,8 @@ public class FindGames {
     }
 
     private static List<Integer> getOddsFanduel() {
+        // From main odds page, returns all the odds in order--unlike ESPN percentage function, which only returns 2
+
         List<WebElement> oddsBoxes = driverFanduel.findElements(By.cssSelector("div.af.ag.ba.az.ct.cu.aj.cv.hy.cx.s.fg.ed.gj.bk.y.h.i.j.al.l.m.am.o.an.q.ao span"));
         List<Integer> odds = new ArrayList<>();
         for (WebElement oddsBox : oddsBoxes) {
@@ -260,6 +268,8 @@ public class FindGames {
     }
 
     private static List<Game> mergeGames(List<Game> percentageGames, List<Game> oddsGames) {
+        // Given a list of games with percentages and a list of games with odds, returns a combined list with both
+
         List<Game> combinedGames = new ArrayList<>();
         for (Game percentageGame : percentageGames) {
             Game combinedGame = new Game(percentageGame);
@@ -283,7 +293,6 @@ public class FindGames {
             // Do calculations
             Integer odds = game.getOdds();
             Double percentage = game.getPercentage();
-
             Double expectedEarnings;
             if (odds > 0) {
                 expectedEarnings = odds*percentage/100;
@@ -293,7 +302,7 @@ public class FindGames {
             Double expectedLoss = 1-percentage;
             Double expectedTotal = expectedEarnings - expectedLoss;
 
-            // Check stats
+            // Check stats--make decision
             Boolean shouldBuy = false;
             if (method == 0) {
                 Double expectedTotalMin = 0.02;

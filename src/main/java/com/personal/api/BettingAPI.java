@@ -18,11 +18,12 @@ import com.personal.model.Game;
 
 public class BettingAPI {
     final String url = "http://localhost:8080/games";
-    final String getNoResultsUrl = url + "/pastNoResult";
+    final String getPastNoResultsUrl = url + "/pastNoResult";
     final int HOUR_MS = 1000*60*60;
     public List<Game> games;
 
     public BettingAPI() {
+        // Initialize games list
         games = new ArrayList<>();
     }
 
@@ -32,6 +33,8 @@ public class BettingAPI {
     }
 
     private String getRequestBody(Game game) {
+        // Generate JSON object with correct parameters
+
         Map<String, Object> params = new HashMap<>();
         params.put("winner", game.getWinner());
         params.put("loser", game.getLoser());
@@ -53,23 +56,31 @@ public class BettingAPI {
     }
 
     public List<Game> getPastGamesWithNoResult() throws IOException, InterruptedException {
+        // Returns a list of past games without the result filled in in the database
+
+        // Build request
         HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(getNoResultsUrl))
+                .uri(URI.create(getPastNoResultsUrl))
                 .headers("Content-Type", "application/json")
                 .GET()
                 .build();
         
+        // send request, get response
         HttpClient client = HttpClient.newHttpClient();
         HttpResponse<String> response = client.send(request,
             HttpResponse.BodyHandlers.ofString());
 
+        // Convert response to List of Games
         ObjectMapper mapper = new ObjectMapper();
         String responseBody = response.body();
         return Arrays.asList(mapper.readValue(responseBody, Game[].class));
     }
 
     public void post() throws IOException, InterruptedException {
+        // Posts each game in the games list to database
+
         for (Game game: games) {
+            // Build request
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -77,6 +88,7 @@ public class BettingAPI {
                     .POST(HttpRequest.BodyPublishers.ofString(getRequestBody(game)))
                     .build();
     
+            // Send request
             HttpResponse<String> response = client.send(request,
                     HttpResponse.BodyHandlers.ofString());
     
@@ -85,7 +97,10 @@ public class BettingAPI {
     }
 
     public void update() throws IOException, InterruptedException {
+        // Updates each game in the games list
+
         for (Game game: games) {
+            // Build request
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(url))
@@ -93,6 +108,7 @@ public class BettingAPI {
                     .PUT(HttpRequest.BodyPublishers.ofString(getRequestBody(game)))
                     .build();
     
+            // Send request
             HttpResponse<String> response = client.send(request,
                     HttpResponse.BodyHandlers.ofString());
     

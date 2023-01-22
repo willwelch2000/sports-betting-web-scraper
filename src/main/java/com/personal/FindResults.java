@@ -38,6 +38,8 @@ public class FindResults {
     }
 
     public static void main( String[] args ) {
+
+        // Start driver, get games to update
         startDriver();
         try {
             pastGamesWithNoResult = bettingAPI.getPastGamesWithNoResult();
@@ -51,12 +53,15 @@ public class FindResults {
 
         String address = "";
         for (Game game : pastGamesWithNoResult) {
+            // Get right ESPN web address for the current game
             String newAddress = FindGames.getESPNAddress(game.getLeague(), game.getDate());
+            // Only navigate to a new page if it's a different address than previous
             if (!newAddress.equals(address)) {
                 address = newAddress;
                 driver.get(address);
             }
 
+            // Get results, add result to game object
             List<WebElement> winnerBoxes = driver.findElements(By.cssSelector("li.ScoreboardScoreCell__Item--winner div.ScoreCell__TeamName--shortDisplayName"));
             List<WebElement> loserBoxes = driver.findElements(By.cssSelector("li.ScoreboardScoreCell__Item--loser div.ScoreCell__TeamName--shortDisplayName"));
             Boolean winner = winnerBoxes.parallelStream().anyMatch(winnerBox -> FindGames.alterTeamName(winnerBox.getText()).equals(FindGames.alterTeamName(game.getWinner())));
